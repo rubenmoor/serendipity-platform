@@ -1,2 +1,3 @@
 dist-ghcjs/
 dist-newstyle/
+.stack-work/
