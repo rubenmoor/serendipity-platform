@@ -4,8 +4,6 @@ cradle:
       config: { cradle: { none: } }
     - path: "./reflex-platform"
       config: { cradle: { none: } }
-    - path: "./frontend/src"
-      config: { cradle: { none: } }
     - path: "./"
       config:
         cradle:
@@ -14,5 +12,5 @@ cradle:
               component: "lib:common"
             - path: "./backend/src"
               component: "exe:backend"
-            # - path: "./frontend/src"
-            #  component: "exe:frontend"
+            - path: "./frontend/src"
+              component: "exe:frontend"

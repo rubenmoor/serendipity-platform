@@ -4,6 +4,7 @@ let
   inherit (nixpkgs) pkgs;
   haskellPackages = pkgs.haskell.packages.ghc8102;
   common = haskellPackages.callPackage ../common {};
-  backend = haskellPackages.callPackage ./. { inherit common; };
+  gerippe = haskellPackages.callPackage ../../../gerippe {};
+  backend = haskellPackages.callPackage ./. { inherit common; inherit gerippe; };
 in
   backend.env

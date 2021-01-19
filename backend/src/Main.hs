@@ -2,29 +2,33 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
 
 module Main where
 
-import           Control.Applicative          ((<**>))
+import           Control.Applicative          (Applicative (pure), (<**>))
 import           Control.Monad.Logger         (NoLoggingT (..))
 import           Control.Monad.Trans.Resource (runResourceT)
 import qualified Data.ByteString.Char8        as Char8
 import qualified Data.ByteString.Lazy         as Lazy
-import           Data.Function                (flip, ($))
+import           Data.Default                 (def)
+import           Data.FileEmbed               (makeRelativeToProject)
+import           Data.Function                (flip, ($), (.))
 import           Data.Int                     (Int)
+import           Data.Maybe                   (Maybe (..), maybe)
 import           Data.Monoid                  ((<>))
 import           Data.Pool                    (Pool)
-import           Data.Text                    (Text)
-import qualified Data.Text as Text
+import           Data.Text                    (Text, breakOn, drop, replace,
+                                               toUpper)
+import qualified Data.Text                    as Text
 import           Database.Persist.MySQL       (ConnectInfo (..),
                                                defaultConnectInfo,
                                                withMySQLPool)
 import           Database.Persist.Sql         (SqlBackend, runMigration,
-                                              runSqlPool)
-import qualified GHC.Real as Real
+                                               runSqlPool)
 import           Network.Wai.Handler.Warp     (run)
 import           Options                      (Options (..), parseMyOptions)
 import           Options.Applicative          (execParser, helper)
@@ -32,14 +36,35 @@ import           Options.Applicative.Builder  (fullDesc, info, progDesc)
 import           Servant                      ((:<|>) (..), Application,
                                                hoistServer, serve)
 import qualified Servant
+import           Servant.Server               (ServerError (..), err400)
 import           System.IO                    (FilePath, IO, putStrLn)
 import           Text.Heterocephalus          (compileHtmlFile)
 import           Text.Show                    (Show (show))
 
-import           Common                       (Message, EpisodeNew, api)
-import           Control.Monad.Reader         (ReaderT (runReaderT))
-import           Model                        (migrateAll)
-import qualified Model
+import           Common                       (EpisodeNew (..), Message (..),
+                                               Status (StatusOK), api,
+                                               convertToFilename,
+                                               formatDuration)
+import           Control.Monad.Except         (MonadError (throwError))
+import           Control.Monad.Reader         (ReaderT (runReaderT), asks)
+import           Control.Monad.Trans          (MonadIO (liftIO))
+import           Data.Bool                    (Bool (False))
+import           Data.Eq                      (Eq ((==)))
+import           Data.Functor                 ((<$>))
+import           Data.List                    (sortOn)
+import           Data.Ord                     (Down (Down))
+import           Data.Time                    (defaultTimeLocale, formatTime,
+                                               rfc822DateFormat)
+import           Data.Time.Clock              (getCurrentTime)
+import           Data.Time.Format             (parseTimeM)
+import           Data.Tuple                   (snd)
+import           Database.Gerippe             (PersistStoreWrite (insert),
+                                               getAllValues)
+import           Safe                         (headMay)
+import           Text.Blaze.Renderer.Utf8     (renderMarkup)
+
+import           Model                        (Episode (..), migrateAll)
+import Control.Monad (when, Monad((>>=)))
 
 data AppConfig = AppConfig
   { cfgPool     :: Pool SqlBackend
@@ -48,11 +73,17 @@ data AppConfig = AppConfig
   }
 
 type Handler = ReaderT AppConfig Servant.Handler
+type DbAction = ReaderT SqlBackend IO
 
 app :: AppConfig -> Application
 app state = serve api $ hoistServer api (flip runReaderT state) $
        handleFeedXML
   :<|> handleEpisodeNew
+
+runDb :: DbAction a -> Handler a
+runDb action = do
+  pool <- asks cfgPool
+  liftIO $ runSqlPool action pool
 
 main :: IO ()
 main = do
@@ -76,9 +107,10 @@ main = do
           }
     NoLoggingT $ run optPort $ app config
 
-handleFeedXML :: Text -> Handler Lazy.ByteString
-handleFeedXML url = do
+handleFeedXML :: Handler Lazy.ByteString
+handleFeedXML = do
   episodeList <- runDb getAllValues
+  url <- asks cfgUrl
   let contents = renderMarkup (
         let title = "full serendipity" :: Text
             img = "podcast-logo.jpg" :: Text
@@ -94,8 +126,8 @@ handleFeedXML url = do
             episodeData = getEpisodeFeedData url <$>
               sortOn  (Down . episodeCreated) episodeList
             latestDate = maybe pubDate efdRFC822 $ headMay episodeData
-        in  $(compileHtmlFile "feed.xml.tpl"))
-  return contents
+        in  $(makeRelativeToProject "feed.xml.tpl" >>= compileHtmlFile))
+  pure contents
 
 data EpisodeFeedData = EpisodeFeedData
     { efdRFC822            :: Text
@@ -119,7 +151,7 @@ getEpisodeFeedData url Model.Episode{..} =
       efdSlug = episodeSlug
       efdFtExtension = episodeFtExtension
       efdAudioFileUrl = mkFileUrl url efdFtExtension efdSlug
-      efdPageUrl = protocol <> podcastLink <> "/" <> efdSlug
+      efdPageUrl = url <> efdSlug
       efdTitle = episodeTitle
       efdThumbnailFile = url <> "static/" <>
         if episodeThumbnailFile == "" then "podcast-logo.jpg"
@@ -141,51 +173,24 @@ mkFileUrl url filetypeExtension slug =
       <> "/" <> mediaLink' <> "/"
       <> slug <> filetypeExtension
 
-formatDuration :: Int -> Text
-formatDuration d =
-  let seconds = d `mod` 60
-      minutes = (d `Real.div` 60) `mod` 60
-      hours = d `Real.div` (60 * 60)
-  in  Text.pack $ printf "%02d:%02d:%02d" hours minutes seconds
-
 handleEpisodeNew :: EpisodeNew -> Handler Message
-handleEpisodeNew EpisodeUpload{..} = do
-  mediaDir <- asks cfgMediaDir
+handleEpisodeNew EpisodeNew{..} = do
   now <- liftIO getCurrentTime
-  -- TODO: these check don't have any effect
-  when (uploadAudioFilename == "\"\"") $
-    throwError $ err400 { errBody = "audio file field mandatory" }
-  when (uploadTitle == "") $
+  when (newTitle == "") $
     throwError $ err400 { errBody = "title field is mandatory" }
-  episodePubdate <- case parseTimeM False defaultTimeLocale "%F" (Text.unpack uploadDate) of
+  pubdate <- case parseTimeM False defaultTimeLocale "%F" (Text.unpack newDate) of
     Just d  -> pure d
     Nothing -> throwError $ err400 { errBody = "could not parse date" }
-  let day = Text.pack $ formatTime defaultTimeLocale "%F" episodePubdate
-      slug = day <> "_" <> convertToFilename (toUpper uploadTitle)
-      episodeFtExtension = Text.pack $ takeExtensions $ Text.unpack uploadAudioFilename
-      audioFile = mediaDir </> Text.unpack slug <> Text.unpack episodeFtExtension
-      -- fill Model.episode
-      episodeCustomIndex = uploadCustomIndex
-      episodeTitle = uploadTitle
-      episodeThumbnailFile =
-        if uploadThumbnailFilename /= "\"\""
-        then mediaDir </> Text.unpack (slug
-               <> Text.pack (takeExtensions $ Text.unpack uploadThumbnailFilename))
-        else ""
-      episodeDescriptionShort = uploadDescription
-      episodeDescriptionLong = uploadDescription
-      episodeAudioContentType = uploadAudioContentType
-      episodeSlug = slug
-      episodeDuration = uploadDuration
-      episodeCreated = now
-      episodeVideoUrl = ""
-  episodeFileSize <- liftIO $ fromIntegral . fileSize <$> getFileStatus uploadAudioFile
-  let episode = Model.Episode{..}
-  liftIO $ do
-    putStrLn $ "Copying " <> uploadAudioFile <> " to " <> audioFile
-    copyFile uploadAudioFile audioFile
-    unless (uploadThumbnailFilename == "\"\"") $ do
-      putStrLn $ "Filename: " <> Text.unpack uploadThumbnailFilename <> ". Copying " <> uploadThumbnailFile <> " to " <> episodeThumbnailFile
-      copyFile uploadThumbnailFile episodeThumbnailFile
-  runDb $ insert episode
-  return $ Text.unpack uploadAudioContentType
+  let day = Text.pack $ formatTime defaultTimeLocale "%F" pubdate
+      episode = def
+        { episodeSlug = day <> "_" <> convertToFilename (toUpper newTitle)
+        , episodeCustomIndex = newCustomIndex
+        , episodeTitle = newTitle
+        , episodePubdate = pubdate
+        , episodeCreated = now
+        }
+  _ <- runDb $ insert episode
+  pure $ Message
+    { msgContent = "new episode created successfully"
+    , msgStatus = StatusOK
+    }

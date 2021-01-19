@@ -8,9 +8,9 @@
 
     <channel>
         <title>#{title}</title>
-        <link>#{protocol}#{podcastLink}</link>
+        <link>#{url}</link>
         <language>en-us</language>
-        <atom:link href="#{protocol}#{podcastLink}/feed.xml"
+        <atom:link href="#{url}/feed.xml"
                    rel="self"
                    type="application/rss+xml"/>
         <copyright>#{copyright}</copyright>
@@ -23,7 +23,7 @@
         <image>
             <url>#{imgUrl}</url>
             <title>#{title}</title>
-            <link>#{protocol}#{podcastLink}</link>
+            <link>#{url}</link>
         </image>
         <docs>http://www.rssboard.org/rss-specification</docs>
         <itunes:subtitle>#{itunesSubtitle}</itunes:subtitle>

@@ -1,4 +1,4 @@
-{ mkDerivation, base, bytestring, common, heterocephalus
+{ mkDerivation, base, bytestring, common, gerippe, heterocephalus
 , monad-logger, mtl, network, optparse-applicative, persistent
 , persistent-mysql, persistent-template, resource-pool, resourcet
 , servant, servant-server, stdenv, text, text-show, time, warp
@@ -10,8 +10,8 @@ mkDerivation {
   isLibrary = false;
   isExecutable = true;
   executableHaskellDepends = [
-    base bytestring common heterocephalus monad-logger mtl network
-    optparse-applicative persistent persistent-mysql
+    base bytestring common gerippe heterocephalus monad-logger mtl
+    network optparse-applicative persistent persistent-mysql
     persistent-template resource-pool resourcet servant servant-server
     text text-show time warp
   ];

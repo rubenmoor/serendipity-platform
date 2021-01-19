@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -14,12 +15,13 @@
 
 module Model where
 
+import Data.Default (Default (..))
 import Data.Text ( Text )
-import           Data.Time           (UTCTime)
-import           Data.Time.Calendar  (Day)
-
+import           Data.Time           (secondsToDiffTime, Day(ModifiedJulianDay), UTCTime (..))
 import Database.Persist.TH
     ( mkMigrate, mkPersist, persistLowerCase, share, sqlSettings )
+
+import Model.Custom (Visibility (..))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 Episode
@@ -38,4 +40,23 @@ Episode
   pubdate          Day           -- day of recording
   created          UTCTime
   videoUrl         Text
+  visibility       Visibility
 |]
+
+instance Default Episode where
+  def =
+    let episodeTitle = ""
+        episodeSlug = ""
+        episodeCustomIndex = ""
+        episodeFtExtension = ""
+        episodeAudioContentType = ""
+        episodeThumbnailFile = ""
+        episodeDescriptionShort = ""
+        episodeDescriptionLong = ""
+        episodeDuration = 0
+        episodeFileSize = 0
+        episodePubdate = ModifiedJulianDay 0
+        episodeCreated = UTCTime { utctDay = ModifiedJulianDay 0, utctDayTime = secondsToDiffTime 0 }
+        episodeVideoUrl = ""
+        episodeVisibility = VisibilityHidden
+    in  Episode{..}

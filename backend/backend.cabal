@@ -19,10 +19,16 @@ executable backend
   main-is:             Main.hs
   other-modules:       Options
                      , Model
+                     , Model.Custom
   -- other-extensions:
   build-depends:       base
                      , bytestring
+                     , blaze-markup
                      , common
+                     , data-default
+                     , file-embed
+                     , filepath
+                     , gerippe
                      , heterocephalus
                      , mtl
                      , monad-logger
@@ -33,6 +39,7 @@ executable backend
                      , persistent-mysql
                      , resource-pool
                      , resourcet
+                     , safe
                      , servant
                      , servant-server
                      , text
