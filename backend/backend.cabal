@@ -17,8 +17,28 @@ extra-source-files:  CHANGELOG.md
 
 executable backend
   main-is:             Main.hs
-  -- other-modules:
+  other-modules:       Options
+                     , Model
   -- other-extensions:
-  build-depends:       base ^>=4.12.0.0
+  build-depends:       base
+                     , bytestring
+                     , common
+                     , heterocephalus
+                     , mtl
+                     , monad-logger
+                     , network
+                     , optparse-applicative
+                     , persistent
+                     , persistent-template
+                     , persistent-mysql
+                     , resource-pool
+                     , resourcet
+                     , servant
+                     , servant-server
+                     , text
+                     , text-show
+                     , time
+                     , warp
   hs-source-dirs:      src
   default-language:    Haskell2010
+  ghc-options: -Wall
