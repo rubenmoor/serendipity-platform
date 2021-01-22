@@ -1,3 +1,4 @@
 dist-ghcjs/
 dist-newstyle/
 .stack-work/
+backend-result
