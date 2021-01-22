@@ -4,4 +4,4 @@ packages:
   backend/
 
   -- deactivated, frontend only build by ghcjs
-  -- frontend/
+  --frontend/

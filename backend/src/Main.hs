@@ -33,8 +33,10 @@ import           Network.Wai.Handler.Warp     (run)
 import           Options                      (Options (..), parseMyOptions)
 import           Options.Applicative          (execParser, helper)
 import           Options.Applicative.Builder  (fullDesc, info, progDesc)
+import           Paths_backend                (getDataFileName)
 import           Servant                      ((:<|>) (..), Application,
-                                               hoistServer, serve)
+                                               hoistServer, serve,
+                                               serveDirectoryWebApp)
 import qualified Servant
 import           Servant.Server               (ServerError (..), err400)
 import           System.IO                    (FilePath, IO, putStrLn)
@@ -63,23 +65,25 @@ import           Database.Gerippe             (PersistStoreWrite (insert),
 import           Safe                         (headMay)
 import           Text.Blaze.Renderer.Utf8     (renderMarkup)
 
+import           Control.Monad                (Monad ((>>=)), when)
+import           Database.MySQL.Base.Types    (Option (CharsetName))
 import           Model                        (Episode (..), migrateAll)
-import Control.Monad (when, Monad((>>=)))
-import Database.MySQL.Base.Types (Option(CharsetName))
 
 data AppConfig = AppConfig
-  { cfgPool     :: Pool SqlBackend
-  , cfgMediaDir :: FilePath
-  , cfgUrl      :: Text
+  { cfgPool      :: Pool SqlBackend
+  , cfgMediaDir  :: FilePath
+  , cfgUrl       :: Text
+  , cfgPublicDir :: FilePath
   }
 
 type Handler = ReaderT AppConfig Servant.Handler
 type DbAction = ReaderT SqlBackend IO
 
 app :: AppConfig -> Application
-app state = serve api $ hoistServer api (flip runReaderT state) $
+app appConfig = serve api $ hoistServer api (flip runReaderT appConfig) $
        handleFeedXML
   :<|> handleEpisodeNew
+  :<|> serveDirectoryWebApp (cfgPublicDir appConfig)
 
 runDb :: DbAction a -> Handler a
 runDb action = do
@@ -92,22 +96,27 @@ main = do
        fullDesc
     <> progDesc "Welcome to the homepage server of the podcast project"
     )
-  putStrLn $ "Serving at port " <> show optPort
-  let connectInfo = defaultConnectInfo
-        { connectHost = optHost
-        , connectUser = Char8.unpack optUser
-        , connectPassword = Char8.unpack optPwd
-        , connectDatabase = Char8.unpack optDbName
-        , connectOptions = [ CharsetName "utf8mb4" ]
-        }
-  runNoLoggingT $ withMySQLPool connectInfo 10 $ \pool -> do
-    runResourceT $ runSqlPool (runMigration migrateAll) pool
-    let config = AppConfig
-          { cfgPool = pool
-          , cfgMediaDir = optMediaDir
-          , cfgUrl = optUrl
+  if optGetDataFilePath
+    -- print file path and exit
+  then getDataFileName "" >>= putStrLn
+  else do
+    putStrLn $ "Serving at port " <> show optPort
+    let connectInfo = defaultConnectInfo
+          { connectHost = optHost
+          , connectUser = Char8.unpack optUser
+          , connectPassword = Char8.unpack optPwd
+          , connectDatabase = Char8.unpack optDbName
+          , connectOptions = [ CharsetName "utf8mb4" ]
           }
-    NoLoggingT $ run optPort $ app config
+    runNoLoggingT $ withMySQLPool connectInfo 10 $ \pool -> do
+      runResourceT $ runSqlPool (runMigration migrateAll) pool
+      let config = AppConfig
+            { cfgPool      = pool
+            , cfgMediaDir  = optMediaDir
+            , cfgUrl       = optUrl
+            , cfgPublicDir = optPublicDir
+            }
+      NoLoggingT $ run optPort $ app config
 
 handleFeedXML :: Handler Lazy.ByteString
 handleFeedXML = do

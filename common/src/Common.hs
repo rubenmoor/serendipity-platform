@@ -37,13 +37,14 @@ import           GHC.Num                  (Num ((*)))
 import           GHC.Real                 (Integral (mod))
 import qualified GHC.Real                 as Real
 import           Network.HTTP.Media       ((//), (/:))
-import           Servant.API              ((:<|>), (:>), FromHttpApiData (..),
+import           Servant.API              (Raw, (:<|>), (:>), FromHttpApiData (..),
                                            Get, JSON, Post, ReqBody)
 import           Servant.API.ContentTypes (MimeUnrender (..), Accept (..), MimeRender (..))
 import           Text.Printf              (printf)
 
 type API = "feed.xml" :> Get '[XML] Lazy.ByteString
       :<|> "api" :> "episode" :> "new" :> ReqBody '[JSON] EpisodeNew :> Post '[JSON] Message
+      :<|> Raw -- frontend: index.html and *.js, media/*.m4a
 
 data Message = Message
   { msgContent :: Text

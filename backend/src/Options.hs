@@ -2,23 +2,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Options where
 
-import Data.Int (Int)
-import System.IO (FilePath)
-import Data.ByteString (ByteString)
-import Options.Applicative (strOption, showDefault, help, value, metavar, short, long, auto, option, Parser)
-import Data.Monoid ((<>))
-import Network.Socket (HostName)
-import Control.Applicative ((<$>), (<*>))
-import Data.Text (Text)
+import           Control.Applicative ((<$>), (<*>))
+import           Data.ByteString     (ByteString)
+import           Data.Int            (Int)
+import           Data.Monoid         ((<>))
+import           Data.Text           (Text)
+import           Network.Socket      (HostName)
+import           Options.Applicative (switch, Parser, auto, help, long, metavar, option,
+                                      short, showDefault, strOption, value)
+import           System.IO           (FilePath)
+import Data.Bool (Bool)
 
 data Options = Options
-    { optPort      :: Int
-    , optUrl       :: Text
-    , optMediaDir  :: FilePath
-    , optHost      :: HostName
-    , optUser      :: ByteString
-    , optPwd       :: ByteString
-    , optDbName    :: ByteString
+    { optPort            :: Int
+    , optUrl             :: Text
+    , optPublicDir       :: FilePath
+    , optMediaDir        :: FilePath
+    , optHost            :: HostName
+    , optUser            :: ByteString
+    , optPwd             :: ByteString
+    , optDbName          :: ByteString
+    , optGetDataFilePath :: Bool
     }
 
 parseMyOptions :: Parser Options
@@ -36,6 +40,13 @@ parseMyOptions = Options
         <> metavar "URL"
         <> value "http://localhost:3000/"
         <> help "the url of the homepage"
+        <> showDefault
+        )
+  <*> strOption (
+           long "public-directory"
+        <> metavar "PUBLICDIR"
+        <> value "public"
+        <> help "filesystem directory, contains compiled frontend files (index.html, *.js)"
         <> showDefault
         )
   <*> strOption (
@@ -71,5 +82,10 @@ parseMyOptions = Options
         <> metavar "DATABASE_NAME"
         <> value "podcast"
         <> help "mysql database name"
+        <> showDefault
+        )
+  <*> switch (
+           long "get-data-file-path"
+        <> help "show path to data files and exit"
         <> showDefault
         )

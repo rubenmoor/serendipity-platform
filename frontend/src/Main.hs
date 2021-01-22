@@ -10,48 +10,49 @@
 
 module Main where
 
-import           Control.Applicative  (Applicative (pure, (<*>)), (<$>))
-import           Data.Data            (Proxy (Proxy))
-import           Data.Either          (Either (Left, Right))
-import           Data.Function        (($), (&), (.))
-import qualified Data.Map             as Map
-import           Data.Monoid          ((<>))
-import           Data.Text            (Text, toUpper)
-import qualified Data.Text            as Text
-import           Data.Time            (getCurrentTime)
-import           Data.Time.Format     (defaultTimeLocale, formatTime)
-import           Data.Tuple           (fst, snd)
-import           GHC.IO               (IO)
-import           Reflex.Dom           (MonadHold(holdDyn), DomBuilder (inputElement),
-                                       InputElement (..),
-                                       MonadWidget,
-                                       Reflex (Dynamic, Event), blank, button,
-                                       constDyn, def, dynText, el, elAttr,
-                                       elDynAttr,
-                                       elementConfig_initialAttributes,
-                                       inputElementConfig_elementConfig,
-                                       inputElementConfig_initialValue,
-                                       mainWidgetWithHead, text, (.~), (=:))
-import           Servant.API          ((:<|>) (..))
-import           Servant.Reflex       (reqFailure, BaseUrl (BasePath), ReqResult, client)
-import           Text.RawString.QQ    (r)
+import           Control.Applicative (Applicative (pure, (<*>)), (<$>))
+import           Data.Data           (Proxy (Proxy))
+import           Data.Either         (Either (Left, Right))
+import           Data.Function       (($), (&), (.))
+import qualified Data.Map            as Map
+import           Data.Monoid         ((<>))
+import           Data.Text           (Text, toUpper)
+import qualified Data.Text           as Text
+import           Data.Time           (getCurrentTime)
+import           Data.Time.Format    (defaultTimeLocale, formatTime)
+import           Data.Tuple          (fst, snd)
+import           GHC.IO              (IO)
+import           Reflex.Dom          (DomBuilder (inputElement),
+                                      InputElement (..), MonadHold (holdDyn),
+                                      MonadWidget, Reflex (Dynamic, Event),
+                                      blank, button, constDyn, def, dynText, el,
+                                      elAttr, elDynAttr,
+                                      elementConfig_initialAttributes,
+                                      inputElementConfig_elementConfig,
+                                      inputElementConfig_initialValue,
+                                      mainWidgetWithHead, text, (.~), (=:))
+import           Servant.API         ((:<|>) (..))
+import           Servant.Reflex      (BaseUrl (BasePath), ReqResult, client,
+                                      reqFailure)
+import           Text.RawString.QQ   (r)
 
-import           Common               (API, EpisodeNew (..), Message,
-                                       convertToFilename)
-import           Data.Functor         (Functor (fmap))
-import Data.Maybe (fromMaybe, maybe, Maybe(Just, Nothing))
-import Control.Monad ((=<<))
-import Data.Witherable (mapMaybe)
+import           Common              (API, EpisodeNew (..), Message,
+                                      convertToFilename)
+import           Control.Monad       ((=<<))
+import           Data.Functor        (Functor (fmap))
+import           Data.Maybe          (Maybe (Just, Nothing), fromMaybe, maybe)
+import           Data.Witherable     (mapMaybe)
 
 postEpisodeNew
   :: forall t (m :: * -> *). MonadWidget t m
   => Dynamic t (Either Text EpisodeNew)
   -> Event t ()
   -> m (Event t (ReqResult () Message))
-(_ :<|> postEpisodeNew) = client (Proxy :: Proxy API)
-                                 (Proxy :: Proxy (m :: * -> *))
-                                 (Proxy :: Proxy ())
-                                 (constDyn (BasePath "/"))
+(_ :<|> postEpisodeNew :<|> _) =
+  client (Proxy :: Proxy API)
+         (Proxy :: Proxy (m :: * -> *))
+         (Proxy :: Proxy ())
+         (constDyn (BasePath "/"))
 
 main :: IO ()
 main = do

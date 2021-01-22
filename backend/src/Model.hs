@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -8,20 +7,22 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE TemplateHaskell            #-}
 
 module Model where
 
-import Data.Default (Default (..))
-import Data.Text ( Text )
-import           Data.Time           (secondsToDiffTime, Day(ModifiedJulianDay), UTCTime (..))
-import Database.Persist.TH
-    ( mkMigrate, mkPersist, persistLowerCase, share, sqlSettings )
+import           Data.Default        (Default (..))
+import           Data.Text           (Text)
+import           Data.Time           (Day (ModifiedJulianDay), UTCTime (..),
+                                      secondsToDiffTime)
+import           Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase,
+                                      share, sqlSettings)
 
-import Model.Custom (Visibility (..))
+import           Model.Custom        (Visibility (..))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 Episode

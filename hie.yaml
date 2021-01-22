@@ -10,7 +10,7 @@ cradle:
           cabal:
             - path: "./common/src"
               component: "lib:common"
-            - path: "./backend/src"
-              component: "exe:backend"
             - path: "./frontend/src"
               component: "exe:frontend"
+            - path: "./backend/src"
+              component: "exe:backend"
