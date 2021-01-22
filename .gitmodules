@@ -7,3 +7,6 @@
 [submodule "gerippe"]
 	path = gerippe
 	url = https://github.com/rubenmoor/gerippe
+[submodule "servant-reflex"]
+	path = servant-reflex
+	url = git@github.com:imalsogreg/servant-reflex
