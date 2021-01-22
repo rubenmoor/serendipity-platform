@@ -62,8 +62,9 @@ parseMyOptions = Options
   <*> strOption (
            long "mysql-password"
         <> metavar "PASSWORD"
-        <> value "foobar"
+        <> value ""
         <> help "mysql password for given user"
+        <> showDefault
         )
   <*> strOption (
            long "mysql-database"

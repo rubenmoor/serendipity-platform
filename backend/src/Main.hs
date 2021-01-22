@@ -65,6 +65,7 @@ import           Text.Blaze.Renderer.Utf8     (renderMarkup)
 
 import           Model                        (Episode (..), migrateAll)
 import Control.Monad (when, Monad((>>=)))
+import Database.MySQL.Base.Types (Option(CharsetName))
 
 data AppConfig = AppConfig
   { cfgPool     :: Pool SqlBackend
@@ -97,6 +98,7 @@ main = do
         , connectUser = Char8.unpack optUser
         , connectPassword = Char8.unpack optPwd
         , connectDatabase = Char8.unpack optDbName
+        , connectOptions = [ CharsetName "utf8mb4" ]
         }
   runNoLoggingT $ withMySQLPool connectInfo 10 $ \pool -> do
     runResourceT $ runSqlPool (runMigration migrateAll) pool
@@ -114,7 +116,7 @@ handleFeedXML = do
   let contents = renderMarkup (
         let title = "full serendipity" :: Text
             img = "podcast-logo.jpg" :: Text
-            imgUrl = url <> "static/" <> img
+            imgUrl = url <> img
             description = "Wir reden hier über Themen" :: Text
             copyright = "Rubm & Luke" :: Text
             email = "luke.rubm@gmail.com (Luke & Rubm)" :: Text
@@ -153,7 +155,7 @@ getEpisodeFeedData url Model.Episode{..} =
       efdAudioFileUrl = mkFileUrl url efdFtExtension efdSlug
       efdPageUrl = url <> efdSlug
       efdTitle = episodeTitle
-      efdThumbnailFile = url <> "static/" <>
+      efdThumbnailFile = url <>
         if episodeThumbnailFile == "" then "podcast-logo.jpg"
         else Text.pack episodeThumbnailFile
       efdDescription = episodeDescriptionShort
@@ -166,7 +168,7 @@ getEpisodeFeedData url Model.Episode{..} =
 -- https://dts.podtrac.com/redirect.m4a/podcast-static.rubenmoor.net/media/2020-11-15_BANANE.m4a
 mkFileUrl :: Text -> Text -> Text -> Text
 mkFileUrl url filetypeExtension slug =
-  let mediaLink' = drop 3 $ snd $ breakOn "://" $ url <> "static/"
+  let mediaLink' = drop 3 $ snd $ breakOn "://" url
   in     "https://"
       <> "dts.podtrac.com/redirect"
       <> filetypeExtension

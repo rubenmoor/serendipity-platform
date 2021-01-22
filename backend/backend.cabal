@@ -32,6 +32,7 @@ executable backend
                      , heterocephalus
                      , mtl
                      , monad-logger
+                     , mysql
                      , network
                      , optparse-applicative
                      , persistent

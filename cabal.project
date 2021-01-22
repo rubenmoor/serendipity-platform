@@ -2,4 +2,6 @@
 packages:
   common/
   backend/
-  frontend/
+
+  -- deactivated, frontend only build by ghcjs
+  -- frontend/
