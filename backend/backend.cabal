@@ -14,12 +14,33 @@ maintainer:          ruben.moor@gmail.com
 -- copyright:
 -- category:
 extra-source-files:  CHANGELOG.md
+data-files:
+  static/favicon.ico
+  static/FontAwesome/attribution.js
+  static/FontAwesome/css/*.css
+  static/FontAwesome/js/*.js
+  static/FontAwesome/less/*.less
+  static/FontAwesome/metadata/*.yml
+  static/FontAwesome/metadata/*.json
+  static/FontAwesome/scss/*.scss
+  static/FontAwesome/sprites/*.svg
+  static/FontAwesome/svgs/brands/*.svg
+  static/FontAwesome/svgs/regular/*.svg
+  static/FontAwesome/svgs/solid/*.svg
+  static/FontAwesome/webfonts/*.eot
+  static/FontAwesome/webfonts/*.svg
+  static/FontAwesome/webfonts/*.ttf
+  static/FontAwesome/webfonts/*.woff
+  static/FontAwesome/webfonts/*.woff2
+  static/podcast-logo.jpg
+  feed.xml.tpl
 
 executable backend
   main-is:             Main.hs
   other-modules:       Options
                      , Model
                      , Model.Custom
+                     , Paths_backend
   -- other-extensions:
   build-depends:       base
                      , bytestring
